@@ -3,7 +3,7 @@ from __future__ import annotations
 import pandas as pd
 from dash import ALL, Input, Output, State, ctx, dcc, html
 
-from config import BASE_URL
+from config import BASE_URL, is_local_base_url
 from components.cards import message, metric_card
 from components.layout import section
 from components.tables import data_table
@@ -18,6 +18,7 @@ from database.auth import (
     is_manager_access_allowed,
     is_session_valid,
     list_manager_users,
+    load_manager_session,
     logout_user,
     user_establishment_scope,
 )
@@ -131,6 +132,15 @@ def manager_access_header(auth: dict | None):
     )
 
 
+def resolve_manager_auth(auth: dict | None) -> dict | None:
+    persisted = load_manager_session()
+    if persisted and persisted.get("authenticated"):
+        return persisted
+    if auth and auth.get("authenticated"):
+        return auth
+    return auth
+
+
 def manager_page_for(pathname: str | None, auth: dict | None = None):
     if pathname == "/manager/qrcodes":
         return html.Div([manager_access_header(auth), qr_codes_page()])
@@ -142,6 +152,7 @@ def manager_dashboard(feedback=None, pathname: str | None = None, auth: dict | N
 
 
 def manager_dashboard_body(feedback=None, pathname: str | None = None, auth: dict | None = None):
+    auth = resolve_manager_auth(auth)
     scope = manager_scope(auth)
     metrics = dashboard_metrics(scope)
     sessions = metrics["sessions"]
@@ -987,6 +998,12 @@ def qr_codes_section():
         html.Div(
             [
                 html.Div([html.Label("Adresse de base"), dcc.Input(id="qr-base-url", type="text", value=BASE_URL)], className="field"),
+                html.Div(
+                    "Les QR codes locaux ne fonctionneront pas hors de cet ordinateur."
+                    if is_local_base_url(BASE_URL)
+                    else "Les QR codes utilisent l'adresse publique configurée.",
+                    className="manager-help",
+                ),
                 html.Button("Générer tous les codes QR", id="generate-qr-codes", className="secondary"),
                 html.Button("Imprimer cette page", id="print-qr-page", className="primary print-button", n_clicks=0),
                 html.Div(id="print-trigger-output", className="visually-hidden"),
@@ -1066,6 +1083,7 @@ def register_callbacks(app):
         prevent_initial_call=True,
     )
     def change_password(_password_clicks, current_password, new_password, auth):
+        auth = resolve_manager_auth(auth)
         if not is_session_valid(auth):
             return {"authenticated": False}, html.Div("Session expirée. Reconnectez-vous.", className="message error")
         try:
@@ -1081,6 +1099,7 @@ def register_callbacks(app):
         prevent_initial_call=True,
     )
     def logout(_logout_clicks, auth):
+        auth = resolve_manager_auth(auth)
         logout_user(auth)
         return {"authenticated": False}
 
@@ -1092,6 +1111,7 @@ def register_callbacks(app):
         prevent_initial_call=False,
     )
     def render_manager(auth, pathname):
+        auth = resolve_manager_auth(auth)
         if auth and auth.get("authenticated") and not is_session_valid(auth):
             return login_panel(), html.Div("Session expirée. Reconnectez-vous.", className="message warning")
         if auth and auth.get("authenticated") and auth.get("must_change_password"):
@@ -1176,6 +1196,7 @@ def register_callbacks(app):
         auth,
         pathname,
     ):
+        auth = resolve_manager_auth(auth)
         if not is_manager_access_allowed(auth):
             return html.Div("Session expirée ou mot de passe à changer. Reconnectez-vous.", className="message error")
         scope = manager_scope(auth)
@@ -1323,6 +1344,7 @@ def register_callbacks(app):
         prevent_initial_call=True,
     )
     def export_excel(_, auth):
+        auth = resolve_manager_auth(auth)
         if not is_manager_access_allowed(auth):
             return None, html.Div("Session expirée. Reconnectez-vous.", className="message error")
         try:
@@ -1349,6 +1371,7 @@ def register_callbacks(app):
         prevent_initial_call=True,
     )
     def export_csv(_, auth):
+        auth = resolve_manager_auth(auth)
         if not is_manager_access_allowed(auth):
             return html.Div("Session expirée. Reconnectez-vous.", className="message error")
         try:
@@ -1377,6 +1400,7 @@ def register_callbacks(app):
         prevent_initial_call=True,
     )
     def create_backup(_, auth):
+        auth = resolve_manager_auth(auth)
         if not is_manager_access_allowed(auth):
             return html.Div("Session expirée. Reconnectez-vous.", className="message error")
         try:
@@ -1403,6 +1427,7 @@ def register_callbacks(app):
         prevent_initial_call=True,
     )
     def generate_qr_assets(_all_clicks, _service_clicks, base_url, auth):
+        auth = resolve_manager_auth(auth)
         if not is_manager_access_allowed(auth):
             return html.Div("Session expirée. Reconnectez-vous.", className="message error"), qr_preview((base_url or BASE_URL).rstrip("/"))
         base_url = (base_url or BASE_URL).rstrip("/")

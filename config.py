@@ -15,3 +15,8 @@ def pointage_url(service: dict, base_url: str | None = None) -> str:
     root = (base_url or BASE_URL).rstrip("/")
     qr_value = service.get("qr_token") or service["qr_slug"]
     return f"{root}/pointage/{qr_value}"
+
+
+def is_local_base_url(base_url: str | None = None) -> bool:
+    root = (base_url or BASE_URL).strip().lower()
+    return root.startswith("http://127.0.0.1") or root.startswith("http://localhost") or root.startswith("http://0.0.0.0")

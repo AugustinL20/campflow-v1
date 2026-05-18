@@ -10,11 +10,18 @@ from database.audit import log_audit_event
 from database.db import get_connection
 from utils.app_logging import log_info, log_warning
 
+try:
+    from flask import has_request_context, session as flask_session
+except Exception:  # pragma: no cover - Flask is always available at runtime
+    has_request_context = lambda: False  # type: ignore[assignment]
+    flask_session = None  # type: ignore[assignment]
+
 ADMIN_GLOBAL = "admin_global"
 RESPONSABLE_ETABLISSEMENT = "responsable_etablissement"
 DEFAULT_ADMIN_EMAIL = "admin@campflow.local"
 DEFAULT_ADMIN_PASSWORD = "manager"
 SESSION_HOURS = 8
+MANAGER_SESSION_KEY = "campflow_manager_auth"
 
 _HASH_PREFIX = "pbkdf2_sha256"
 _ITERATIONS = 260_000
@@ -84,6 +91,7 @@ def authenticate_user(email: str | None, password: str | None) -> dict | None:
         return None
     user = _public_user(dict(row))
     user.update(_session_metadata())
+    _save_manager_session(user)
     log_info(f"Login responsable réussi : {normalized_email}")
     return user
 
@@ -245,13 +253,14 @@ def change_own_password(user_id: int, current_password: str | None, new_password
             SET password_hash = ?, must_change_password = 0
             WHERE id = ?
             """,
-            (hash_password(new_password or ""), user_id),
+            (updated_hash := hash_password(new_password or ""), user_id),
         )
         updated = dict(row)
-        updated["password_hash"] = hash_password(new_password or "")
+        updated["password_hash"] = updated_hash
         updated["must_change_password"] = 0
     user = _public_user(updated)
     user.update(_session_metadata())
+    _save_manager_session(user)
     log_info(f"Changement mot de passe réussi : {user['email']}")
     return user
 
@@ -292,6 +301,7 @@ def is_manager_access_allowed(user: dict | None) -> bool:
 def logout_user(user: dict | None) -> None:
     if user and user.get("email"):
         log_info(f"Déconnexion responsable : {user['email']}")
+    _clear_manager_session()
 
 
 def user_establishment_scope(user: dict | None) -> int:
@@ -328,3 +338,38 @@ def _session_metadata() -> dict:
         "login_at": now.isoformat(),
         "expires_at": (now + timedelta(hours=SESSION_HOURS)).isoformat(),
     }
+
+
+def _save_manager_session(user: dict) -> None:
+    if not has_request_context() or flask_session is None:
+        return
+    flask_session[MANAGER_SESSION_KEY] = {
+        key: user.get(key)
+        for key in (
+            "id",
+            "establishment_id",
+            "establishment_name",
+            "first_name",
+            "last_name",
+            "email",
+            "role",
+            "active",
+            "must_change_password",
+            "authenticated",
+            "login_at",
+            "expires_at",
+        )
+    }
+
+
+def load_manager_session() -> dict | None:
+    if not has_request_context() or flask_session is None:
+        return None
+    data = flask_session.get(MANAGER_SESSION_KEY)
+    return dict(data) if data else None
+
+
+def _clear_manager_session() -> None:
+    if not has_request_context() or flask_session is None:
+        return
+    flask_session.pop(MANAGER_SESSION_KEY, None)

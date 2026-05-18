@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 from dash import Dash, Input, Output, dcc, html
 
 from components.layout import home_shell, manager_shell, worker_shell
@@ -13,6 +15,7 @@ ensure_default_admin_user()
 
 app = Dash(__name__, suppress_callback_exceptions=True, title="CAMPFLOW V1")
 server = app.server
+server.secret_key = os.getenv("CAMPFLOW_SECRET_KEY", "campflow-dev-secret-change-me")
 
 app.layout = html.Div([dcc.Location(id="url"), html.Div(id="page-content")])
 

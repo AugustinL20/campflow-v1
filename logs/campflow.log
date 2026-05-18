@@ -79,3 +79,62 @@
 2026-05-18 19:31:28,701 INFO Déconnexion responsable : admin@campflow.local
 2026-05-18 19:31:31,574 WARNING Login responsable refusé : identifiants incomplets
 2026-05-18 19:31:31,619 WARNING Login responsable refusé : identifiants incomplets
+2026-05-18 21:17:17,436 WARNING Login responsable refusé : identifiants incomplets
+2026-05-18 21:17:32,191 WARNING Login responsable refusé : admin@campflow.local
+2026-05-18 21:17:35,948 WARNING Login responsable refusé : identifiants incomplets
+2026-05-18 21:17:36,960 WARNING Login responsable refusé : identifiants incomplets
+2026-05-18 21:17:37,852 WARNING Login responsable refusé : identifiants incomplets
+2026-05-18 21:17:46,208 WARNING Login responsable refusé : identifiants incomplets
+2026-05-18 21:17:47,244 WARNING Login responsable refusé : identifiants incomplets
+2026-05-18 21:17:47,411 WARNING Login responsable refusé : identifiants incomplets
+2026-05-18 21:17:47,559 WARNING Login responsable refusé : identifiants incomplets
+2026-05-18 21:17:47,749 WARNING Login responsable refusé : identifiants incomplets
+2026-05-18 21:17:47,884 WARNING Login responsable refusé : identifiants incomplets
+2026-05-18 21:17:48,047 WARNING Login responsable refusé : identifiants incomplets
+2026-05-18 21:17:48,185 WARNING Login responsable refusé : identifiants incomplets
+2026-05-18 21:17:48,359 WARNING Login responsable refusé : identifiants incomplets
+2026-05-18 21:17:48,546 WARNING Login responsable refusé : identifiants incomplets
+2026-05-18 21:18:09,958 INFO Login responsable réussi : admin@campflow.local
+2026-05-18 21:18:10,309 INFO Déconnexion responsable : admin@campflow.local
+2026-05-18 21:20:11,421 WARNING Login responsable refusé : identifiants incomplets
+2026-05-18 21:20:11,519 WARNING Login responsable refusé : identifiants incomplets
+2026-05-18 21:20:13,246 WARNING Login responsable refusé : identifiants incomplets
+2026-05-18 21:20:13,288 WARNING Login responsable refusé : identifiants incomplets
+2026-05-18 21:20:14,304 WARNING Login responsable refusé : identifiants incomplets
+2026-05-18 21:20:14,337 WARNING Login responsable refusé : identifiants incomplets
+2026-05-18 21:20:16,938 INFO Login responsable réussi : admin@campflow.local
+2026-05-18 21:20:17,045 INFO Déconnexion responsable : admin@campflow.local
+2026-05-18 21:25:30,318 WARNING Login responsable refusé : admin@campflow.local
+2026-05-18 21:25:55,981 INFO Compte responsable par défaut créé : admin@campflow.local
+2026-05-18 21:25:56,321 INFO Login responsable réussi : admin@campflow.local
+2026-05-18 21:26:13,363 INFO Compte responsable par défaut créé : admin@campflow.local
+2026-05-18 21:26:13,699 INFO Login responsable réussi : admin@campflow.local
+2026-05-18 21:26:51,746 INFO Compte responsable par défaut créé : admin@campflow.local
+2026-05-18 21:26:52,125 INFO Login responsable réussi : admin@campflow.local
+2026-05-18 21:27:13,878 INFO Compte responsable par défaut créé : admin@campflow.local
+2026-05-18 21:27:14,207 INFO Login responsable réussi : admin@campflow.local
+2026-05-18 21:28:09,878 INFO Compte responsable par défaut créé : admin@campflow.local
+2026-05-18 21:28:10,203 INFO Login responsable réussi : admin@campflow.local
+2026-05-18 21:28:36,103 INFO Compte responsable par défaut créé : admin@campflow.local
+2026-05-18 21:28:36,519 INFO Login responsable réussi : admin@campflow.local
+2026-05-18 21:28:52,346 INFO Compte responsable par défaut créé : admin@campflow.local
+2026-05-18 21:29:02,502 INFO Compte responsable par défaut créé : admin@campflow.local
+2026-05-18 21:29:02,824 INFO Login responsable réussi : admin@campflow.local
+2026-05-18 21:29:03,887 INFO Changement mot de passe réussi : admin@campflow.local
+2026-05-18 21:29:04,072 INFO Export généré : Excel campflow_export_semaine_2026-05-18.xlsx
+2026-05-18 21:30:19,248 INFO Compte responsable par défaut créé : admin@campflow.local
+2026-05-18 21:30:19,576 INFO Login responsable réussi : admin@campflow.local
+2026-05-18 21:30:20,433 INFO Changement mot de passe réussi : admin@campflow.local
+2026-05-18 21:30:20,437 INFO Sauvegarde locale créée : campflow_backup_2026-05-18_21-30.sqlite3
+2026-05-18 21:30:32,519 INFO Compte responsable par défaut créé : admin@campflow.local
+2026-05-18 21:30:32,854 INFO Login responsable réussi : admin@campflow.local
+2026-05-18 21:30:33,826 INFO Changement mot de passe réussi : admin@campflow.local
+2026-05-18 21:30:33,831 INFO Sauvegarde locale créée : campflow_backup_2026-05-18_21-30.sqlite3
+2026-05-18 21:30:52,617 INFO Compte responsable par défaut créé : admin@campflow.local
+2026-05-18 21:30:52,941 INFO Login responsable réussi : admin@campflow.local
+2026-05-18 21:30:53,827 INFO Changement mot de passe réussi : admin@campflow.local
+2026-05-18 21:30:53,842 INFO Action responsable : créneau 1 validé
+2026-05-18 21:31:05,014 INFO Compte responsable par défaut créé : admin@campflow.local
+2026-05-18 21:31:05,397 INFO Login responsable réussi : admin@campflow.local
+2026-05-18 21:31:06,351 INFO Changement mot de passe réussi : admin@campflow.local
+2026-05-18 21:31:06,362 INFO Action responsable : demande manuelle 1 refusé
