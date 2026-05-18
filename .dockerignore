@@ -1,0 +1,9 @@
+.venv
+__pycache__
+*.pyc
+.DS_Store
+.git
+data/campflow.sqlite3
+exports/*.xlsx
+exports/*.csv
+exports/qr_codes
