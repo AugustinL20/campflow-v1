@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from dash import Input, Output, State, ctx, dcc, html
+from dash import Input, Output, State, ctx, dcc, html, no_update
 
 from components.cards import message
 from components.layout import section
@@ -149,13 +149,19 @@ def layout(service_slug: str | None = None):
                         "Commencer mon service",
                         id="submit-punch",
                         className="big-action start",
+                        n_clicks=0,
                     ),
                     html.P(
                         "Un clic suffit. Attendez la confirmation avant de fermer la page.",
                         className="button-helper",
                     ),
                     html.Div(id="open-service-warning"),
-                    html.Div(id="pointage-feedback"),
+                    dcc.Loading(
+                        html.Div(id="pointage-feedback"),
+                        type="circle",
+                        color="#1f7a4d",
+                        overlay_style={"visibility": "visible"},
+                    ),
                     html.Div(
                         [
                             html.H3("Mes pointages aujourd'hui"),

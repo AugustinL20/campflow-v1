@@ -4,6 +4,10 @@ __pycache__
 .DS_Store
 .git
 data/campflow.sqlite3
+data/*.sqlite3
 exports/*.xlsx
 exports/*.csv
+exports/*.html
 exports/qr_codes
+backups
+logs

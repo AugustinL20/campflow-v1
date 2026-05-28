@@ -410,6 +410,14 @@ def load_manager_session() -> dict | None:
     return user
 
 
+def restore_manager_session_from_store(store_data: dict | None) -> dict | None:
+    """Re-populate Flask session from dcc.Store if cookie was lost (new tab, browser cleared)."""
+    if not store_data or not is_session_valid(store_data):
+        return None
+    _save_manager_session(store_data)
+    return load_manager_session()
+
+
 def _clear_manager_session() -> None:
     if not has_request_context() or flask_session is None:
         return

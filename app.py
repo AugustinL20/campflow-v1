@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import os
 from datetime import timedelta
+from urllib.parse import parse_qs
 
 from dash import Dash, Input, Output, dcc, html
 
 from components.layout import home_shell, manager_shell, worker_shell
-from config import is_local_base_url
+from config import is_local_base_url, pointage_url
 from database.auth import SESSION_HOURS, ensure_default_admin_user
 from database.db import init_db
 from database.queries import list_services
@@ -30,9 +31,12 @@ server.config.update(
 app.layout = html.Div([dcc.Location(id="url"), html.Div(id="page-content")])
 
 
-@app.callback(Output("page-content", "children"), Input("url", "pathname"))
-def display_page(pathname: str | None):
+@app.callback(Output("page-content", "children"), Input("url", "pathname"), Input("url", "search"))
+def display_page(pathname: str | None, search: str | None):
     pathname = pathname or "/"
+    if pathname == "/pointage":
+        token = _query_param(search, "token")
+        return worker_shell(pointage.layout(token))
     if pathname.startswith("/pointage/"):
         service_slug = pathname.rstrip("/").split("/")[-1]
         return worker_shell(pointage.layout(service_slug))
@@ -48,7 +52,7 @@ def display_page(pathname: str | None):
                         html.Div(
                             [
                                 *[
-                                    dcc.Link(str(service["name"]).capitalize(), href=f"/pointage/{service['qr_token']}", className="quick-link")
+                                    dcc.Link(str(service["name"]).capitalize(), href=pointage_url(service), className="quick-link")
                                     for service in list_services()
                                 ],
                             ],
@@ -61,6 +65,12 @@ def display_page(pathname: str | None):
             ]
         )
     )
+
+
+def _query_param(search: str | None, name: str) -> str | None:
+    params = parse_qs((search or "").lstrip("?"))
+    values = params.get(name) or []
+    return values[0] if values else None
 
 
 pointage.register_callbacks(app)

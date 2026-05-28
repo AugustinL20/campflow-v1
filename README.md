@@ -16,23 +16,23 @@ Configuration optionnelle :
 
 ```bash
 export CAMPFLOW_BASE_URL="http://127.0.0.1:8050"
+export CAMPFLOW_SECRET_KEY="change-me-local-secret"
+export CAMPFLOW_QR_TOKEN_TTL_DAYS="90"
 ```
 
 Application locale :
 
 - Accueil : http://127.0.0.1:8050
-- QR restaurant : http://127.0.0.1:8050/pointage/restaurant
-- QR ménage : http://127.0.0.1:8050/pointage/menage
-- QR entretien : http://127.0.0.1:8050/pointage/entretien
+- QR restaurant : genere depuis `/manager/qrcodes`
+- QR ménage : genere depuis `/manager/qrcodes`
+- QR entretien : genere depuis `/manager/qrcodes`
 - Responsable : http://127.0.0.1:8050/manager
 
 ## Interface saisonnier
 
 Les codes QR imprimés et plastifiés doivent pointer vers les adresses de service :
 
-- `/pointage/restaurant`
-- `/pointage/menage`
-- `/pointage/entretien`
+- `/pointage?token=<signed_token>`
 
 La page saisonnier est mobile first. Elle affiche un seul gros bouton :
 
@@ -152,6 +152,8 @@ Variables à définir :
 
 ```bash
 export CAMPFLOW_BASE_URL="https://votre-domaine.fr"
+export CAMPFLOW_SECRET_KEY="clé-longue-aléatoire-stable"
+export CAMPFLOW_QR_TOKEN_TTL_DAYS="90"
 ```
 
 Changez le mot de passe temporaire du compte `admin@campflow.local` dès le premier lancement en production.

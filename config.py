@@ -14,7 +14,7 @@ SERVICES = [
 def pointage_url(service: dict, base_url: str | None = None) -> str:
     root = (base_url or BASE_URL).rstrip("/")
     qr_value = service.get("qr_token") or service["qr_slug"]
-    return f"{root}/pointage/{qr_value}"
+    return f"{root}/pointage?token={qr_value}"
 
 
 def is_local_base_url(base_url: str | None = None) -> bool:

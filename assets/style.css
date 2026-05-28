@@ -381,7 +381,11 @@ button.full-width,
   margin-top: 10px;
 }
 
-.message.error,
+.message.error {
+  background: #fdeaea;
+  color: var(--red);
+}
+
 .message.warning {
   background: #fff3d1;
   color: var(--amber);
@@ -1025,6 +1029,54 @@ button.full-width,
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Mobile UX improvements ─────────────────────────── */
+
+.big-action:active {
+  transform: scale(0.98);
+}
+
+.big-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Dash loading overlay — keep feedback zone visible while loading */
+._dash-loading ._dash-loading-callback {
+  opacity: 0.6;
+}
+
+/* Confirmation card — larger time on mobile */
+@media (max-width: 540px) {
+  .confirmation-title {
+    font-size: 18px;
+  }
+
+  .confirmation-time {
+    font-size: 52px;
+  }
+
+  .big-action {
+    min-height: 96px;
+    font-size: 22px;
+  }
+
+  .worker-dropdown .Select-value-label,
+  .worker-dropdown .Select-placeholder {
+    font-size: 16px;
+  }
+}
+
+/* Prevent zoom on input focus on iOS (min font-size 16px) */
+@media (max-width: 820px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* ── /end mobile ─────────────────────────────────────── */
 
 @media print {
   .topbar,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dash import dcc, html
 
+from config import pointage_url
 from database.queries import list_services
 
 
@@ -20,7 +21,7 @@ def app_shell(content):
                     html.Nav(
                         [
                             *[
-                                dcc.Link(str(service["name"]).capitalize(), href=f"/pointage/{service['qr_token']}")
+                                dcc.Link(str(service["name"]).capitalize(), href=pointage_url(service))
                                 for service in list_services()
                             ],
                             dcc.Link("Responsable", href="/manager", className="manager-discreet-link"),
@@ -83,7 +84,7 @@ def manager_shell(content):
                             dcc.Link("Responsable", href="/manager"),
                             dcc.Link("Codes QR", href="/manager/qrcodes"),
                             *[
-                                dcc.Link(f"Pointage {service['name'].lower()}", href=f"/pointage/{service['qr_token']}")
+                                dcc.Link(f"Pointage {service['name'].lower()}", href=pointage_url(service))
                                 for service in list_services()
                             ],
                         ],

@@ -6,9 +6,13 @@ CAMPFLOW V1 est une application Dash/Flask. En production, lancez-la avec Gunico
 
 ```bash
 CAMPFLOW_BASE_URL=https://votre-domaine.fr
+CAMPFLOW_SECRET_KEY=clé-longue-aléatoire-stable
+CAMPFLOW_QR_TOKEN_TTL_DAYS=90
 ```
 
 `CAMPFLOW_BASE_URL` sert aux liens et codes QR. Après changement du domaine, régénérez les codes QR depuis `/manager/qrcodes`.
+`CAMPFLOW_SECRET_KEY` doit rester stable : il signe les sessions manager et les QR publics.
+`CAMPFLOW_QR_TOKEN_TTL_DAYS` règle la durée de validité des nouveaux QR publics.
 
 Si aucun utilisateur n'existe, CAMPFLOW crée au premier démarrage :
 
@@ -56,8 +60,11 @@ web: gunicorn app:server --bind 0.0.0.0:${PORT:-8050}
 À configurer dans la plateforme :
 
 - variable `CAMPFLOW_BASE_URL`
+- variable `CAMPFLOW_SECRET_KEY`
+- variable `CAMPFLOW_QR_TOKEN_TTL_DAYS`
 - volume persistant pour `data/`
 - volume persistant pour `exports/` si vous voulez conserver les fichiers générés
+- volume persistant pour `backups/` si vous utilisez les sauvegardes locales
 
 ## Déploiement Docker
 
@@ -74,8 +81,10 @@ docker run --rm \
   -p 8050:8050 \
   -e PORT=8050 \
   -e CAMPFLOW_BASE_URL=http://localhost:8050 \
+  -e CAMPFLOW_SECRET_KEY=change-me-local-secret \
   -v "$(pwd)/data:/app/data" \
   -v "$(pwd)/exports:/app/exports" \
+  -v "$(pwd)/backups:/app/backups" \
   campflow-v1
 ```
 
@@ -87,4 +96,5 @@ docker run --rm \
 - export Excel téléchargé depuis le navigateur
 - CSV pour tableur Google généré
 - codes QR régénérés avec le vrai domaine
+- codes QR régénérés après tout changement de `CAMPFLOW_SECRET_KEY` ou `CAMPFLOW_QR_TOKEN_TTL_DAYS`
 - sauvegarde de `data/campflow.sqlite3` planifiée

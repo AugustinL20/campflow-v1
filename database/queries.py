@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pandas as pd
-import secrets
 
 from database.audit import log_audit_event
 from database.context import ALL_ESTABLISHMENTS_ID, default_establishment_id, is_all_establishments_scope
@@ -45,12 +44,23 @@ def list_services(establishment_id: int | None = None) -> list[dict]:
 
 
 def get_service_by_slug(slug: str, establishment_id: int | None = None) -> dict | None:
+    from utils.qr_token import verify_qr_token
+    token_data = verify_qr_token(slug)
+    if token_data:
+        return get_service_by_id(token_data["service_id"], establishment_id)
+    # Legacy fallback: direct DB lookup for old random tokens or static service slugs.
     params: tuple = (slug,)
     where_establishment = ""
     if establishment_id:
         where_establishment = "AND establishment_id = ?"
         params = (slug, establishment_id)
     with get_connection() as conn:
+        row = conn.execute(
+            f"SELECT * FROM services WHERE (qr_token = ? OR qr_slug = ?) {where_establishment}",
+            (slug, slug, *params[1:]),
+        ).fetchone()
+        if row:
+            return dict(row)
         row = conn.execute(
             f"SELECT * FROM services WHERE qr_token = ? {where_establishment}",
             params,
@@ -69,8 +79,8 @@ def get_service_by_id(service_id: int, establishment_id: int | None = None) -> d
 
 
 def rotate_service_qr_token(service_slug: str, establishment_id: int | None = None) -> dict:
+    from utils.qr_token import generate_qr_token
     establishment_id = establishment_id or default_establishment_id()
-    token = secrets.token_urlsafe(16)
     with get_connection() as conn:
         row = conn.execute(
             "SELECT * FROM services WHERE qr_slug = ? AND establishment_id = ?",
@@ -78,6 +88,7 @@ def rotate_service_qr_token(service_slug: str, establishment_id: int | None = No
         ).fetchone()
         if not row:
             raise ValueError("Service inconnu.")
+        token = generate_qr_token(int(row["id"]))
         conn.execute("UPDATE services SET qr_token = ? WHERE id = ?", (token, row["id"]))
         updated = conn.execute("SELECT * FROM services WHERE id = ?", (row["id"],)).fetchone()
     return dict(updated)
@@ -404,9 +415,6 @@ def record_qr_punch(
             (establishment_id, employee_id, service_id, PENDING_SCAN),
         ).fetchone()
 
-        conn.execute(
-            "BEGIN"
-        )
         if punch_type == "arrivee":
             if same_open_session:
                 return False, "Vous avez déjà commencé ce service. Terminez-le avant de le recommencer."

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import sqlite3
-import secrets
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -102,14 +101,11 @@ def _migrate_employees_weekly_target(conn: sqlite3.Connection) -> None:
 
 
 def _migrate_services_qr_token(conn: sqlite3.Connection) -> None:
+    from utils.qr_token import generate_qr_token, verify_qr_token
     columns = {row["name"] for row in conn.execute("PRAGMA table_info(services)").fetchall()}
     if "qr_token" not in columns:
         conn.execute("ALTER TABLE services ADD COLUMN qr_token TEXT")
     rows = conn.execute("SELECT id, qr_token FROM services").fetchall()
     for row in rows:
-        if not row["qr_token"]:
-            conn.execute("UPDATE services SET qr_token = ? WHERE id = ?", (_new_qr_token(), row["id"]))
-
-
-def _new_qr_token() -> str:
-    return secrets.token_urlsafe(16)
+        if not row["qr_token"] or not verify_qr_token(row["qr_token"]):
+            conn.execute("UPDATE services SET qr_token = ? WHERE id = ?", (generate_qr_token(row["id"]), row["id"]))
