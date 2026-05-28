@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import os
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -13,12 +14,13 @@ from database.db import DEFAULT_ESTABLISHMENT_ID, get_connection, init_db
 
 def reset_admin() -> None:
     init_db()
+    temporary_password = os.getenv("CAMPFLOW_ADMIN_PASSWORD", DEFAULT_ADMIN_PASSWORD)
     with get_connection() as conn:
         row = conn.execute(
             "SELECT id FROM users WHERE lower(email) = lower(?)",
             (DEFAULT_ADMIN_EMAIL,),
         ).fetchone()
-        password_hash = hash_password(DEFAULT_ADMIN_PASSWORD)
+        password_hash = hash_password(temporary_password)
         if row:
             conn.execute(
                 """
@@ -48,4 +50,5 @@ def reset_admin() -> None:
 
 if __name__ == "__main__":
     reset_admin()
-    print("Compte admin réinitialisé.")
+    print(f"Compte admin réinitialisé : {DEFAULT_ADMIN_EMAIL}")
+    print("Mot de passe temporaire : variable CAMPFLOW_ADMIN_PASSWORD ou 'manager' par défaut.")
