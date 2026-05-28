@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import os
+from datetime import timedelta
 
 from dash import Dash, Input, Output, dcc, html
 
 from components.layout import home_shell, manager_shell, worker_shell
-from database.auth import ensure_default_admin_user
+from config import is_local_base_url
+from database.auth import SESSION_HOURS, ensure_default_admin_user
 from database.db import init_db
 from database.queries import list_services
 from pages import dashboard, manager, pointage
@@ -16,6 +18,14 @@ ensure_default_admin_user()
 app = Dash(__name__, suppress_callback_exceptions=True, title="CAMPFLOW V1")
 server = app.server
 server.secret_key = os.getenv("CAMPFLOW_SECRET_KEY", "campflow-dev-secret-change-me")
+
+_is_production = not is_local_base_url()
+server.config.update(
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=SESSION_HOURS),
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SECURE=_is_production,
+    SESSION_COOKIE_SAMESITE="Lax",
+)
 
 app.layout = html.Div([dcc.Location(id="url"), html.Div(id="page-content")])
 

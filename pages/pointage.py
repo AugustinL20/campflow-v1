@@ -18,7 +18,8 @@ from database.queries import (
     record_smart_qr_punch,
     today_punches_for_employee,
 )
-from utils.app_logging import log_error, log_info
+from utils.app_logging import log_error, log_info, log_warning
+from utils.rate_limit import is_rate_limited
 
 MONTHS_FR = [
     "janvier",
@@ -317,6 +318,19 @@ def register_callbacks(app):
             feedback = ""
 
             if triggered == "submit-punch":
+                try:
+                    from flask import request as flask_request
+                    ip = flask_request.remote_addr or "unknown"
+                except Exception:
+                    ip = "unknown"
+                if is_rate_limited(f"qr_punch:{ip}", max_requests=20, window_seconds=60):
+                    log_warning(f"Pointage QR rate limit dépassé : IP {ip}")
+                    return worker_callback_response(
+                        feedback=message("Trop de pointages en peu de temps. Attendez une minute.", "warning"),
+                        employee_id=employee_id,
+                        service_id=service_id,
+                        establishment_id=establishment_id,
+                    )
                 if not employee_id:
                     if not first_name or not last_name:
                         return worker_callback_response(

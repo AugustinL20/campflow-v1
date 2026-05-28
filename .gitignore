@@ -5,4 +5,7 @@ __pycache__/
 data/campflow.sqlite3
 exports/*.xlsx
 exports/*.csv
+exports/*.html
 exports/qr_codes/
+backups/
+logs/

@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import os
 import secrets
 from datetime import datetime, timedelta
+
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 from database.context import ALL_ESTABLISHMENTS_ID, default_establishment_id
 from database.audit import log_audit_event
@@ -91,6 +94,7 @@ def authenticate_user(email: str | None, password: str | None) -> dict | None:
         return None
     user = _public_user(dict(row))
     user.update(_session_metadata())
+    user["auth_token"] = _session_token(user)
     _save_manager_session(user)
     log_info(f"Login responsable réussi : {normalized_email}")
     return user
@@ -260,6 +264,7 @@ def change_own_password(user_id: int, current_password: str | None, new_password
         updated["must_change_password"] = 0
     user = _public_user(updated)
     user.update(_session_metadata())
+    user["auth_token"] = _session_token(user)
     _save_manager_session(user)
     log_info(f"Changement mot de passe réussi : {user['email']}")
     return user
@@ -304,6 +309,34 @@ def logout_user(user: dict | None) -> None:
     _clear_manager_session()
 
 
+def restore_manager_session_from_store(user: dict | None) -> dict | None:
+    if not is_session_valid(user) or not _verify_session_token(user):
+        return None
+    with get_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT u.*, e.name AS establishment_name
+            FROM users u
+            LEFT JOIN establishments e ON e.id = u.establishment_id
+            WHERE u.id = ? AND lower(u.email) = lower(?) AND u.active = 1
+            """,
+            (int(user.get("id") or 0), _normalize_email(user.get("email"))),
+        ).fetchone()
+    if not row:
+        return None
+    restored = _public_user(dict(row))
+    restored.update(
+        {
+            "authenticated": True,
+            "login_at": user.get("login_at"),
+            "expires_at": user.get("expires_at"),
+            "auth_token": user.get("auth_token"),
+        }
+    )
+    _save_manager_session(restored)
+    return restored
+
+
 def user_establishment_scope(user: dict | None) -> int:
     if not user:
         return default_establishment_id()
@@ -343,6 +376,7 @@ def _session_metadata() -> dict:
 def _save_manager_session(user: dict) -> None:
     if not has_request_context() or flask_session is None:
         return
+    flask_session.permanent = True
     flask_session[MANAGER_SESSION_KEY] = {
         key: user.get(key)
         for key in (
@@ -358,6 +392,7 @@ def _save_manager_session(user: dict) -> None:
             "authenticated",
             "login_at",
             "expires_at",
+            "auth_token",
         )
     }
 
@@ -366,10 +401,46 @@ def load_manager_session() -> dict | None:
     if not has_request_context() or flask_session is None:
         return None
     data = flask_session.get(MANAGER_SESSION_KEY)
-    return dict(data) if data else None
+    if not data:
+        return None
+    user = dict(data)
+    if not is_session_valid(user):
+        _clear_manager_session()
+        return None
+    return user
 
 
 def _clear_manager_session() -> None:
     if not has_request_context() or flask_session is None:
         return
     flask_session.pop(MANAGER_SESSION_KEY, None)
+
+
+def _session_token(user: dict) -> str:
+    payload = {
+        "id": int(user["id"]),
+        "email": _normalize_email(user.get("email")),
+        "login_at": user.get("login_at"),
+        "expires_at": user.get("expires_at"),
+    }
+    return _session_signer().dumps(payload)
+
+
+def _verify_session_token(user: dict | None) -> bool:
+    if not user or not user.get("auth_token"):
+        return False
+    try:
+        payload = _session_signer().loads(user["auth_token"], max_age=SESSION_HOURS * 3600)
+    except (BadSignature, SignatureExpired, TypeError):
+        return False
+    return (
+        int(payload.get("id") or 0) == int(user.get("id") or 0)
+        and _normalize_email(payload.get("email")) == _normalize_email(user.get("email"))
+        and payload.get("login_at") == user.get("login_at")
+        and payload.get("expires_at") == user.get("expires_at")
+    )
+
+
+def _session_signer() -> URLSafeTimedSerializer:
+    secret = os.getenv("CAMPFLOW_SECRET_KEY", "campflow-dev-secret-change-me")
+    return URLSafeTimedSerializer(secret_key=secret, salt="campflow-manager-session")

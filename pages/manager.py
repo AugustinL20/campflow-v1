@@ -20,6 +20,7 @@ from database.auth import (
     list_manager_users,
     load_manager_session,
     logout_user,
+    restore_manager_session_from_store,
     user_establishment_scope,
 )
 from database.context import ALL_ESTABLISHMENTS_ID, default_establishment_id
@@ -43,10 +44,11 @@ from database.queries import (
     update_employee_weekly_target,
 )
 from utils.anomaly_detection import detect_anomalies
-from utils.app_logging import log_error
+from utils.app_logging import log_error, log_warning
 from utils.backups import create_database_backup
 from utils.export_excel import export_weekly_csv, export_weekly_excel
 from utils.qr_generator import generate_printable_html, generate_qr_code_for_service, generate_qr_codes, printable_cards
+from utils.rate_limit import is_rate_limited
 
 
 def layout():
@@ -132,13 +134,16 @@ def manager_access_header(auth: dict | None):
     )
 
 
-def resolve_manager_auth(auth: dict | None) -> dict | None:
+def resolve_manager_auth(auth: dict | None, allow_store_fallback: bool = False) -> dict | None:
     persisted = load_manager_session()
     if persisted and persisted.get("authenticated"):
         return persisted
-    if auth and auth.get("authenticated"):
+    restored = restore_manager_session_from_store(auth)
+    if restored and restored.get("authenticated"):
+        return restored
+    if allow_store_fallback and is_session_valid(auth):
         return auth
-    return auth
+    return None
 
 
 def manager_page_for(pathname: str | None, auth: dict | None = None):
@@ -1004,7 +1009,8 @@ def qr_codes_section():
                     else "Les QR codes utilisent l'adresse publique configurée.",
                     className="manager-help",
                 ),
-                html.Button("Générer tous les codes QR", id="generate-qr-codes", className="secondary"),
+                html.Div("Après chaque déploiement ou changement d’URL, régénérez les QR codes.", className="message warning"),
+                html.Button("Régénérer tous les QR codes publics", id="generate-qr-codes", className="secondary"),
                 html.Button("Imprimer cette page", id="print-qr-page", className="primary print-button", n_clicks=0),
                 html.Div(id="print-trigger-output", className="visually-hidden"),
                 html.Div(id="qr-generation-feedback"),
@@ -1068,6 +1074,14 @@ def register_callbacks(app):
         prevent_initial_call=True,
     )
     def login(_login_clicks, email, password):
+        try:
+            from flask import request as flask_request
+            ip = flask_request.remote_addr or "unknown"
+        except Exception:
+            ip = "unknown"
+        if is_rate_limited(f"login:{ip}", max_requests=5, window_seconds=60):
+            log_warning(f"Login rate limit dépassé : IP {ip}")
+            return {"authenticated": False}, html.Div("Trop de tentatives de connexion. Réessayez dans une minute.", className="message error")
         user = authenticate_user(email, password)
         if user:
             return user, ""
@@ -1083,9 +1097,9 @@ def register_callbacks(app):
         prevent_initial_call=True,
     )
     def change_password(_password_clicks, current_password, new_password, auth):
-        auth = resolve_manager_auth(auth)
+        auth = resolve_manager_auth(auth, allow_store_fallback=True)
         if not is_session_valid(auth):
-            return {"authenticated": False}, html.Div("Session expirée. Reconnectez-vous.", className="message error")
+            return {"authenticated": False}, html.Div("Connectez-vous pour changer le mot de passe.", className="message error")
         try:
             updated = change_own_password(int(auth["id"]), current_password, new_password)
         except ValueError as exc:
@@ -1111,9 +1125,7 @@ def register_callbacks(app):
         prevent_initial_call=False,
     )
     def render_manager(auth, pathname):
-        auth = resolve_manager_auth(auth)
-        if auth and auth.get("authenticated") and not is_session_valid(auth):
-            return login_panel(), html.Div("Session expirée. Reconnectez-vous.", className="message warning")
+        auth = resolve_manager_auth(auth, allow_store_fallback=True)
         if auth and auth.get("authenticated") and auth.get("must_change_password"):
             return "", change_password_panel(auth)
         if is_manager_access_allowed(auth):
@@ -1198,7 +1210,7 @@ def register_callbacks(app):
     ):
         auth = resolve_manager_auth(auth)
         if not is_manager_access_allowed(auth):
-            return html.Div("Session expirée ou mot de passe à changer. Reconnectez-vous.", className="message error")
+            return html.Div("Connectez-vous pour continuer.", className="message error")
         scope = manager_scope(auth)
         triggered = ctx.triggered_id
         if not triggered:
@@ -1346,7 +1358,7 @@ def register_callbacks(app):
     def export_excel(_, auth):
         auth = resolve_manager_auth(auth)
         if not is_manager_access_allowed(auth):
-            return None, html.Div("Session expirée. Reconnectez-vous.", className="message error")
+            return None, html.Div("Connectez-vous pour générer l’export.", className="message error")
         try:
             log_audit_event(
                 action="export_excel_generated",
@@ -1373,7 +1385,7 @@ def register_callbacks(app):
     def export_csv(_, auth):
         auth = resolve_manager_auth(auth)
         if not is_manager_access_allowed(auth):
-            return html.Div("Session expirée. Reconnectez-vous.", className="message error")
+            return html.Div("Connectez-vous pour générer l’export.", className="message error")
         try:
             log_audit_event(
                 action="export_csv_generated",
@@ -1402,7 +1414,7 @@ def register_callbacks(app):
     def create_backup(_, auth):
         auth = resolve_manager_auth(auth)
         if not is_manager_access_allowed(auth):
-            return html.Div("Session expirée. Reconnectez-vous.", className="message error")
+            return html.Div("Connectez-vous pour créer une sauvegarde.", className="message error")
         try:
             path = create_database_backup()
             log_audit_event(
@@ -1429,7 +1441,7 @@ def register_callbacks(app):
     def generate_qr_assets(_all_clicks, _service_clicks, base_url, auth):
         auth = resolve_manager_auth(auth)
         if not is_manager_access_allowed(auth):
-            return html.Div("Session expirée. Reconnectez-vous.", className="message error"), qr_preview((base_url or BASE_URL).rstrip("/"))
+            return html.Div("Connectez-vous pour régénérer les QR codes.", className="message error"), qr_preview((base_url or BASE_URL).rstrip("/"))
         base_url = (base_url or BASE_URL).rstrip("/")
         try:
             triggered = ctx.triggered_id
@@ -1453,10 +1465,16 @@ def register_callbacks(app):
             return html.Div("Le code QR n’a pas pu être généré. Réessayez dans un instant.", className="message error"), qr_preview(base_url)
         lines = [html.Div(f"{_service_display_label(item['service'])} : {item['url']}") for item in generated]
         service_label = _service_display_label(generated[0]["service"]) if len(generated) == 1 else "tous les services"
+        success_text = (
+            f"QR code régénéré avec l’URL publique : {base_url}"
+            if len(generated) == 1
+            else f"QR codes régénérés avec l’URL publique : {base_url}"
+        )
         return (
             html.Div(
                 [
-                    html.Div(f"Code QR généré pour {service_label}.", className="message success"),
+                    html.Div(success_text, className="message success"),
+                    html.Div(f"Service concerné : {service_label}.", className="message success"),
                     html.Div(f"Fichier enregistré dans : {generated[0]['path'].parent}", className="message success"),
                     html.Div(f"Page imprimable : {printable}", className="message success"),
                     html.Div(lines, className="qr-url-list"),
