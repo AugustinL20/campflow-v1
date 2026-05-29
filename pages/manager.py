@@ -1079,12 +1079,12 @@ def register_callbacks(app):
             ip = flask_request.remote_addr or "unknown"
         except Exception:
             ip = "unknown"
-        user = authenticate_user(email, password)
-        if user:
-            return user, ""
         if is_rate_limited(f"login:{ip}", max_requests=5, window_seconds=60):
             log_warning(f"Login rate limit dépassé : IP {ip}")
             return {"authenticated": False}, html.Div("Trop de tentatives de connexion. Réessayez dans une minute.", className="message error")
+        user = authenticate_user(email, password)
+        if user:
+            return user, ""
         return {"authenticated": False}, html.Div("Email ou mot de passe incorrect.", className="message error")
 
     @app.callback(

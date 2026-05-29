@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .DS_Store
 data/campflow.sqlite3
+data/campflow.sqlite3-*
 exports/*.xlsx
 exports/*.csv
 exports/*.html
